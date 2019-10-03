@@ -44,6 +44,9 @@ self.addEventListener('fetch', function(event) {
                 return res
               })
           })
+          .catch(err => {
+            console.log('sw fetch error', error)
+          })
       }
     })
   );
