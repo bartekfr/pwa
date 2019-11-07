@@ -1,8 +1,12 @@
 
+const cacheVersion = '2'
+const staticCacheName = `static-${cacheVersion}`
+const dynamicCacheName  = `dynamic-${cacheVersion}`
+
 self.addEventListener('install', function(event) {
   console.log('[Service Worker] Installing Service Worker ...', event);
   event.waitUntil(
-    caches.open('static')
+    caches.open(staticCacheName)
       .then(function(cache) {
         console.log('[Service Worker] Precaching App Shell');
         cache.addAll([
@@ -22,8 +26,23 @@ self.addEventListener('install', function(event) {
   )
 })
 
-self.addEventListener('activate', function(event) {
+const cacheUpdate = async () => {
+  const cacheKeys = await caches.keys()
+
+  return Promise.all(
+    cacheKeys.map(cacheKey => {
+      if (cacheKey !== staticCacheName && cacheKey !== dynamicCacheName) {
+        console.log(`Deleteing ${cacheKey}`)
+        return caches.delete(cacheKey)
+      }
+    }
+   )
+ )
+}
+
+self.addEventListener('activate', (event) => {
   console.log('[Service Worker] Activating Service Worker ...', event);
+  event.waitUntil(cacheUpdate())
   return self.clients.claim();
 });
 
@@ -31,23 +50,23 @@ self.addEventListener('fetch', function(event) {
   // console.log('[Service Worker] Fetching something ....', event);
   if (event.request.cache === 'only-if-cached' && event.request.mode !== 'same-origin') return;
   event.respondWith(
-  caches.match(event.request)
-    .then(response => {
-      if (response) {
-        return response;
-      } else {
-        return fetch(event.request)
-          .then(res => {
-            return caches.open('dynamic')
-              .then(cache => {
-                cache.put(event.request.url, res.clone())
-                return res
-              })
-          })
-          .catch(err => {
-            console.log('sw fetch error', error)
-          })
-      }
-    })
+    caches.match(event.request)
+      .then(response => {
+        if (response) {
+          return response;
+        } else {
+          return fetch(event.request)
+            .then(res => {
+              return caches.open(dynamicCacheName)
+                .then(cache => {
+                  cache.put(event.request.url, res.clone())
+                  return res
+                })
+            })
+            .catch(err => {
+              console.log('sw fetch error', err)
+            })
+        }
+      })
   );
 });
