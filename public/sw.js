@@ -1,5 +1,5 @@
 
-const cacheVersion = '2'
+const cacheVersion = '4'
 const staticCacheName = `static-${cacheVersion}`
 const dynamicCacheName  = `dynamic-${cacheVersion}`
 
@@ -59,6 +59,7 @@ self.addEventListener('fetch', function(event) {
             .then(res => {
               return caches.open(dynamicCacheName)
                 .then(cache => {
+                  console.log('Dynamic caching in action')
                   cache.put(event.request.url, res.clone())
                   return res
                 })
