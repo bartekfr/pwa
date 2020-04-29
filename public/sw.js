@@ -1,5 +1,4 @@
-
-const cacheVersion = '4'
+const cacheVersion = '5'
 const staticCacheName = `static-${cacheVersion}`
 const dynamicCacheName  = `dynamic-${cacheVersion}`
 
@@ -12,6 +11,7 @@ self.addEventListener('install', function(event) {
         cache.addAll([
           '/',
           '/index.html',
+          '/offline.html',
           '/src/js/app.js',
           '/src/js/feed.js',
           '/src/js/material.min.js',
@@ -46,6 +46,7 @@ self.addEventListener('activate', (event) => {
   return self.clients.claim();
 });
 
+// TODO rewrite to async/await
 self.addEventListener('fetch', function(event) {
   // console.log('[Service Worker] Fetching something ....', event);
   if (event.request.cache === 'only-if-cached' && event.request.mode !== 'same-origin') return;
@@ -66,6 +67,10 @@ self.addEventListener('fetch', function(event) {
             })
             .catch(err => {
               console.log('sw fetch error', err)
+              return caches.open(staticCacheName)
+                .then(cache => {
+                  return cache.match('/offline.html')
+                })
             })
         }
       })
